@@ -40,8 +40,8 @@ tcp_conn_t c1;
 tcp_conn_t c2;
 tcp_conn_t c3;
 tcp_conn_t c4;
-tcp_conn_t c5;
-__u8 pos;
+__u16 pos;
+__u16 cpu;
 */
 type batch C.batch_t
 
@@ -84,6 +84,37 @@ type kernelTelemetry C.telemetry_t
 
 func (cs *ConnStatsWithTimestamp) isExpired(latestTime uint64, timeout uint64) bool {
 	return latestTime > timeout+uint64(cs.timestamp)
+}
+
+func newBatch(data []byte) *batch {
+	return (*batch)(unsafe.Pointer(&data[0]))
+}
+
+// ExtractBatchInto extract network.ConnectionStats objects from the given `batch`
+// The `start` (inclusive) and `end` (exclusive) arguments represent the offsets
+// which we want to extract.
+func ExtractBatchInto(buffer []network.ConnectionStats, b *batch, start, end int) []network.ConnectionStats {
+	if start >= end || end > TCPCloseBatchSize {
+		return nil
+	}
+
+	var (
+		connSize = unsafe.Sizeof(b.c0)
+		current  = uintptr(unsafe.Pointer(b)) + uintptr(start)*connSize
+	)
+
+	for i := start; i < end; i++ {
+		ct := TCPConn(*(*C.tcp_conn_t)(unsafe.Pointer(current)))
+
+		tup := ConnTuple(ct.tup)
+		cst := ConnStatsWithTimestamp(ct.conn_stats)
+		tst := TCPStats(ct.tcp_stats)
+
+		buffer = append(buffer, connStats(&tup, &cst, &tst))
+		current += connSize
+	}
+
+	return buffer
 }
 
 func connStats(t *ConnTuple, s *ConnStatsWithTimestamp, tcpStats *TCPStats) network.ConnectionStats {
@@ -132,23 +163,6 @@ func connFamily(m uint) network.ConnectionFamily {
 	}
 
 	return network.AFINET6
-}
-
-func decodeRawTCPConns(data []byte) []network.ConnectionStats {
-	var _conn C.tcp_conn_t
-	connSize := int(unsafe.Sizeof(_conn))
-
-	conns := make([]network.ConnectionStats, 0, len(data)/connSize)
-	for len(data) > 0 {
-		ct := TCPConn(*(*C.tcp_conn_t)(unsafe.Pointer(&data[0])))
-		tup := ConnTuple(ct.tup)
-		cst := ConnStatsWithTimestamp(ct.conn_stats)
-		tst := TCPStats(ct.tcp_stats)
-		conns = append(conns, connStats(&tup, &cst, &tst))
-		data = data[connSize:]
-	}
-
-	return conns
 }
 
 func isPortClosed(state uint8) bool {
