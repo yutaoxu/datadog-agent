@@ -50,7 +50,28 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "query_block": {
+        "select_id": 1,
+        "table": {
+          "update": true,
+          "table_name": "sbtest1",
+          "access_type": "range",
+          "possible_keys": [
+            "PRIMARY"
+          ],
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "id"
+          ],
+          "key_length": "4",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": "?",
+          "filtered": "?",
+          "attached_condition": "( sbtest . sbtest1 . id = ? )"
+        }
+      }
     }
   },
   {
@@ -126,7 +147,39 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "?"
+        },
+        "table": {
+          "table_name": "sbtest1",
+          "access_type": "range",
+          "possible_keys": [
+            "PRIMARY",
+            "k_1"
+          ],
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "id"
+          ],
+          "key_length": "4",
+          "rows_examined_per_scan": "?",
+          "rows_produced_per_join": "?",
+          "filtered": "?",
+          "cost_info": {
+            "read_cost": "?",
+            "eval_cost": "?",
+            "prefix_cost": "?",
+            "data_read_per_join": "?"
+          },
+          "used_columns": [
+            "id",
+            "k"
+          ],
+          "attached_condition": "( sbtest . sbtest1 . id between ? and ? )"
+        }
+      }
     }
   },
   {
@@ -212,7 +265,44 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "?"
+        },
+        "ordering_operation": {
+          "using_filesort": true,
+          "cost_info": {
+            "sort_cost": "?"
+          },
+          "table": {
+            "table_name": "sbtest1",
+            "access_type": "range",
+            "possible_keys": [
+              "PRIMARY"
+            ],
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "id"
+            ],
+            "key_length": "4",
+            "rows_examined_per_scan": "?",
+            "rows_produced_per_join": "?",
+            "filtered": "?",
+            "cost_info": {
+              "read_cost": "?",
+              "eval_cost": "?",
+              "prefix_cost": "?",
+              "data_read_per_join": "?"
+            },
+            "used_columns": [
+              "id",
+              "c"
+            ],
+            "attached_condition": "( sbtest . sbtest1 . id between ? and ? )"
+          }
+        }
+      }
     }
   },
   {
@@ -290,7 +380,40 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "?"
+        },
+        "table": {
+          "table_name": "sbtest1",
+          "access_type": "const",
+          "possible_keys": [
+            "PRIMARY"
+          ],
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "id"
+          ],
+          "key_length": "4",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": "?",
+          "rows_produced_per_join": "?",
+          "filtered": "?",
+          "cost_info": {
+            "read_cost": "?",
+            "eval_cost": "?",
+            "prefix_cost": "?",
+            "data_read_per_join": "?"
+          },
+          "used_columns": [
+            "id",
+            "c"
+          ]
+        }
+      }
     }
   }
 ]

@@ -348,7 +348,6 @@ func (o *Obfuscator) obfuscateSQL(span *pb.Span) {
 type mapEntryTransform func(key string, value interface{}) (string, interface{})
 
 // transformMapEntriesRecursive returns a copy of the map object, recursively transforming any keys matching keyPattern
-// by calling the provided transform.
 func transformMapEntriesRecursive(obj interface{}, keyPattern *regexp.Regexp, transform mapEntryTransform) interface{} {
 	if mapObj, ok := obj.(map[string]interface{}); ok {
 		result := make(map[string]interface{})
@@ -374,26 +373,39 @@ func transformMapEntriesRecursive(obj interface{}, keyPattern *regexp.Regexp, tr
 	return obj
 }
 
-const obfuscatedConditionFallback = "OBFUSCATED"
+var planObfuscationPattern = regexp.MustCompile(`attached_condition|(\w+ Cond)`)
 
-var planConditionKeyPattern = regexp.MustCompile(`attached_condition|(\w+ Cond)`)
-
+// ObfuscateSQLPlan obfuscates all query conditions (i.e. (where id=5) -> (where id=?)) in the provided json execution
+// plan.
 func (o *Obfuscator) ObfuscateSQLPlan(plan map[string]interface{}) map[string]interface{} {
-	var p interface{} = plan
-	result := transformMapEntriesRecursive(p, planConditionKeyPattern, func(key string, value interface{}) (string, interface{}) {
+	result := transformMapEntriesRecursive(plan, planObfuscationPattern, func(key string, value interface{}) (string, interface{}) {
 		strValue, ok := value.(string)
 		if !ok {
-			log.Errorf("failed to obfuscate sql plan. expected string type value for key '%s', found '%s'", key, reflect.TypeOf(value))
-			// return fallback string instead of the original to ensure we still replace the string with something and ensure
-			// params don't make it through
-			return key, obfuscatedConditionFallback
+			log.Errorf("wrong type found for key '%s'. Expected string, Found: %v", key, reflect.TypeOf(value))
+			return key, "?"
 		}
 		obfQuery, err := o.ObfuscateSQLString(strValue)
 		if err != nil {
 			log.Errorf("failed to obfuscate sql plan: %s", err.Error())
-			return key, obfuscatedConditionFallback
+			return key, "?"
 		}
 		return key, obfQuery.Query
+	})
+	resultMap, ok := result.(map[string]interface{})
+	if !ok {
+		log.Errorf("wrong type received from transformMapEntriesRecursive. this shouldn't happen. Expected: map[string]interface{}, Found: %v", reflect.TypeOf(result))
+		return nil
+	}
+	return resultMap
+}
+
+var planNormalizationPattern = regexp.MustCompile(`(\w+_cost)|rows_examined_per_scan|rows_produced_per_join|data_read_per_join|filtered|(\w Cost)|Plan Rows|Plan Width`)
+
+// NormalizeSQLPlan normalizes away all cost & estimation related values in the query plan. Note that this does not
+// obfuscate query conditions. That is done in ObfuscateSQLPlan.
+func (o *Obfuscator) NormalizeSQLPlan(plan map[string]interface{}) map[string]interface{} {
+	result := transformMapEntriesRecursive(plan, planNormalizationPattern, func(key string, value interface{}) (string, interface{}) {
+		return key, "?"
 	})
 	resultMap, ok := result.(map[string]interface{})
 	if !ok {

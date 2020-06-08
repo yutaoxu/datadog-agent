@@ -32,7 +32,19 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "Plan": {
+        "Node Type": "Index Scan",
+        "Parallel Aware": false,
+        "Scan Direction": "Forward",
+        "Index Name": "sbtest1_pkey",
+        "Relation Name": "sbtest1",
+        "Alias": "sbtest1",
+        "Startup Cost": "?",
+        "Total Cost": "?",
+        "Plan Rows": "?",
+        "Plan Width": "?",
+        "Index Cond": "( id = ? )"
+      }
     }
   },
   {
@@ -90,7 +102,30 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "Plan": {
+        "Node Type": "Bitmap Heap Scan",
+        "Parallel Aware": false,
+        "Relation Name": "sbtest1",
+        "Alias": "sbtest1",
+        "Startup Cost": "?",
+        "Total Cost": "?",
+        "Plan Rows": "?",
+        "Plan Width": "?",
+        "Recheck Cond": "( ( id >= ? ) AND ( id <= ? ) )",
+        "Plans": [
+          {
+            "Node Type": "Bitmap Index Scan",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Index Name": "sbtest1_pkey",
+            "Startup Cost": "?",
+            "Total Cost": "?",
+            "Plan Rows": "?",
+            "Plan Width": "?",
+            "Index Cond": "( ( id >= ? ) AND ( id <= ? ) )"
+          }
+        ]
+      }
     }
   },
   {
@@ -198,7 +233,55 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "Plan": {
+        "Node Type": "Unique",
+        "Parallel Aware": false,
+        "Startup Cost": "?",
+        "Total Cost": "?",
+        "Plan Rows": "?",
+        "Plan Width": "?",
+        "Plans": [
+          {
+            "Node Type": "Sort",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Startup Cost": "?",
+            "Total Cost": "?",
+            "Plan Rows": "?",
+            "Plan Width": "?",
+            "Sort Key": [
+              "c"
+            ],
+            "Plans": [
+              {
+                "Node Type": "Bitmap Heap Scan",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Relation Name": "sbtest1",
+                "Alias": "sbtest1",
+                "Startup Cost": "?",
+                "Total Cost": "?",
+                "Plan Rows": "?",
+                "Plan Width": "?",
+                "Recheck Cond": "( ( id >= ? ) AND ( id <= ? ) )",
+                "Plans": [
+                  {
+                    "Node Type": "Bitmap Index Scan",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Index Name": "sbtest1_pkey",
+                    "Startup Cost": "?",
+                    "Total Cost": "?",
+                    "Plan Rows": "?",
+                    "Plan Width": "?",
+                    "Index Cond": "( ( id >= ? ) AND ( id <= ? ) )"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   {
@@ -250,7 +333,27 @@
       }
     },
     "normalized_plan": {
-      "TODO": true
+      "Plan": {
+        "Node Type": "Limit",
+        "Parallel Aware": false,
+        "Startup Cost": "?",
+        "Total Cost": "?",
+        "Plan Rows": "?",
+        "Plan Width": "?",
+        "Plans": [
+          {
+            "Node Type": "Seq Scan",
+            "Parent Relationship": "Outer",
+            "Parallel Aware": false,
+            "Relation Name": "sbtest1",
+            "Alias": "sbtest1",
+            "Startup Cost": "?",
+            "Total Cost": "?",
+            "Plan Rows": "?",
+            "Plan Width": "?"
+          }
+        ]
+      }
     }
   }
 ]

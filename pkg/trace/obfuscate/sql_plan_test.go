@@ -69,17 +69,21 @@ func loadAllTestCases() (result []execPlanTestCase, err error) {
 	return result, nil
 }
 
-func TestPlanObfuscation(t *testing.T) {
+func TestPlanObfuscationAndNormalization(t *testing.T) {
 	testCases, err := loadAllTestCases()
 	if err != nil {
 		assert.FailNowf(t, "failed to load test cases", err.Error())
 	}
-
 	assert.NotEmpty(t, testCases)
 	for i, testCase := range testCases {
-		t.Run(fmt.Sprintf("test_%d_%s", i, testCase.Rdbms), func(t *testing.T) {
+		t.Run(fmt.Sprintf("test_obfuscate_%d_%s", i, testCase.Rdbms), func(t *testing.T) {
 			result := NewObfuscator(nil).ObfuscateSQLPlan(testCase.TestPlan)
 			assert.Equal(t, testCase.ObfuscatedPlan, result)
+		})
+		t.Run(fmt.Sprintf("test_normalize_%d_%s", i, testCase.Rdbms), func(t *testing.T) {
+			obfuscated := NewObfuscator(nil).ObfuscateSQLPlan(testCase.TestPlan)
+			normalized := NewObfuscator(nil).NormalizeSQLPlan(obfuscated)
+			assert.Equal(t, testCase.NormalizedPlan, normalized)
 		})
 	}
 }
