@@ -41,6 +41,11 @@ func (c *IOCheck) commonConfigure(data integration.Data, initConfig integration.
 			c.blacklist, err = regexp.Compile(regex)
 		}
 	}
+
+	if lowercaseDeviceTag, ok := conf["lowercase_device_tag"]; ok && lowercaseDeviceTag {
+		c.lowercaseDeviceTag = true
+	}
+
 	return err
 }
 
