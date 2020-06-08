@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
+	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -341,4 +343,62 @@ func (o *Obfuscator) obfuscateSQL(span *pb.Span) {
 		return
 	}
 	traceutil.SetMeta(span, sqlQueryTag, oq.Query)
+}
+
+type mapEntryTransform func(key string, value interface{}) (string, interface{})
+
+// transformMapEntriesRecursive returns a copy of the map object, recursively transforming any keys matching keyPattern
+// by calling the provided transform.
+func transformMapEntriesRecursive(obj interface{}, keyPattern *regexp.Regexp, transform mapEntryTransform) interface{} {
+	if mapObj, ok := obj.(map[string]interface{}); ok {
+		result := make(map[string]interface{})
+		for key, val := range mapObj {
+			if keyPattern.MatchString(key) {
+				key, val = transform(key, val)
+				// transform can decide to drop a key by returning empty string for key
+				if key != "" {
+					result[key] = val
+				}
+			} else {
+				result[key] = transformMapEntriesRecursive(val, keyPattern, transform)
+			}
+		}
+		return result
+	} else if listObj, ok := obj.([]interface{}); ok {
+		result := make([]interface{}, len(listObj), len(listObj))
+		for i, val := range listObj {
+			result[i] = transformMapEntriesRecursive(val, keyPattern, transform)
+		}
+		return result
+	}
+	return obj
+}
+
+const obfuscatedConditionFallback = "OBFUSCATED"
+
+var planConditionKeyPattern = regexp.MustCompile(`attached_condition|(\w+ Cond)`)
+
+func (o *Obfuscator) ObfuscateSQLPlan(plan map[string]interface{}) map[string]interface{} {
+	var p interface{} = plan
+	result := transformMapEntriesRecursive(p, planConditionKeyPattern, func(key string, value interface{}) (string, interface{}) {
+		strValue, ok := value.(string)
+		if !ok {
+			log.Errorf("failed to obfuscate sql plan. expected string type value for key '%s', found '%s'", key, reflect.TypeOf(value))
+			// return fallback string instead of the original to ensure we still replace the string with something and ensure
+			// params don't make it through
+			return key, obfuscatedConditionFallback
+		}
+		obfQuery, err := o.ObfuscateSQLString(strValue)
+		if err != nil {
+			log.Errorf("failed to obfuscate sql plan: %s", err.Error())
+			return key, obfuscatedConditionFallback
+		}
+		return key, obfQuery.Query
+	})
+	resultMap, ok := result.(map[string]interface{})
+	if !ok {
+		log.Errorf("wrong type received from transformMapEntriesRecursive. this shouldn't happen. Expected: map[string]interface{}, Found: %v", reflect.TypeOf(result))
+		return nil
+	}
+	return resultMap
 }
