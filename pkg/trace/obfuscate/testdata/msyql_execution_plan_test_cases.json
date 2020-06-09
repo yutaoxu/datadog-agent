@@ -421,7 +421,7 @@
           ],
           "rows_examined_per_scan": 1,
           "filtered": "100.00",
-          "attached_condition": "condition obfuscation failed. enable agent debug logs for more info."
+          "attached_condition": "datadog-agent-error: condition obfuscation failed. enable agent debug logs for more info."
         }
       }
     },
@@ -443,7 +443,7 @@
           "ref": [
             "const"
           ],
-          "attached_condition": "condition obfuscation failed. enable agent debug logs for more info."
+          "attached_condition": "datadog-agent-error: condition obfuscation failed. enable agent debug logs for more info."
         }
       }
     }

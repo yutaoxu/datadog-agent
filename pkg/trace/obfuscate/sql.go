@@ -425,7 +425,7 @@ var planStructureKeys = map[string]bool{
 	"Join Filter":         true,
 }
 
-const failedObfuscationString = "condition obfuscation failed. enable agent debug logs for more info."
+const failedObfuscationString = "datadog-agent-error: condition obfuscation failed. enable agent debug logs for more info."
 
 // ObfuscateSQLExecutionPlan obfuscates all query conditions (i.e. (where id=5) -> (where id=?)) in the provided json
 // execution plan
