@@ -425,19 +425,21 @@ var planStructureKeys = map[string]bool{
 	"Join Filter":         true,
 }
 
+const failedObfuscationString = "condition obfuscation failed. enable agent debug logs for more info."
+
 // ObfuscateSQLExecutionPlan obfuscates all query conditions (i.e. (where id=5) -> (where id=?)) in the provided json
 // execution plan
 func (o *Obfuscator) ObfuscateSQLExecutionPlan(plan map[string]interface{}) map[string]interface{} {
 	result := transformMapEntriesRecursive(plan, planConditionKeys, true, func(key string, value interface{}) (string, interface{}) {
 		strValue, ok := value.(string)
 		if !ok {
-			log.Errorf("wrong type found for key '%s'. Expected string, Found: %v", key, reflect.TypeOf(value))
-			return key, "?"
+			log.Debugf("failed to obfuscate execution plan. wrong type found. key=%s expected_type=string found_type=%s", key, reflect.TypeOf(value))
+			return key, failedObfuscationString
 		}
 		obfQuery, err := o.ObfuscateSQLString(strValue)
 		if err != nil {
-			log.Errorf("failed to obfuscate sql plan: %s", err.Error())
-			return key, "?"
+			log.Debugf("failed to obfuscate execution plan. key=%s value='%s' error='%s'", key, strValue, err.Error())
+			return key, failedObfuscationString
 		}
 		return key, obfQuery.Query
 	})
