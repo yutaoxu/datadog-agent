@@ -39,10 +39,6 @@
         "Index Name": "sbtest1_pkey",
         "Relation Name": "sbtest1",
         "Alias": "sbtest1",
-        "Startup Cost": "?",
-        "Total Cost": "?",
-        "Plan Rows": "?",
-        "Plan Width": "?",
         "Index Cond": "( id = ? )"
       }
     }
@@ -107,10 +103,6 @@
         "Parallel Aware": false,
         "Relation Name": "sbtest1",
         "Alias": "sbtest1",
-        "Startup Cost": "?",
-        "Total Cost": "?",
-        "Plan Rows": "?",
-        "Plan Width": "?",
         "Recheck Cond": "( ( id >= ? ) AND ( id <= ? ) )",
         "Plans": [
           {
@@ -118,10 +110,6 @@
             "Parent Relationship": "Outer",
             "Parallel Aware": false,
             "Index Name": "sbtest1_pkey",
-            "Startup Cost": "?",
-            "Total Cost": "?",
-            "Plan Rows": "?",
-            "Plan Width": "?",
             "Index Cond": "( ( id >= ? ) AND ( id <= ? ) )"
           }
         ]
@@ -236,19 +224,11 @@
       "Plan": {
         "Node Type": "Unique",
         "Parallel Aware": false,
-        "Startup Cost": "?",
-        "Total Cost": "?",
-        "Plan Rows": "?",
-        "Plan Width": "?",
         "Plans": [
           {
             "Node Type": "Sort",
             "Parent Relationship": "Outer",
             "Parallel Aware": false,
-            "Startup Cost": "?",
-            "Total Cost": "?",
-            "Plan Rows": "?",
-            "Plan Width": "?",
             "Sort Key": [
               "c"
             ],
@@ -259,10 +239,6 @@
                 "Parallel Aware": false,
                 "Relation Name": "sbtest1",
                 "Alias": "sbtest1",
-                "Startup Cost": "?",
-                "Total Cost": "?",
-                "Plan Rows": "?",
-                "Plan Width": "?",
                 "Recheck Cond": "( ( id >= ? ) AND ( id <= ? ) )",
                 "Plans": [
                   {
@@ -270,10 +246,6 @@
                     "Parent Relationship": "Outer",
                     "Parallel Aware": false,
                     "Index Name": "sbtest1_pkey",
-                    "Startup Cost": "?",
-                    "Total Cost": "?",
-                    "Plan Rows": "?",
-                    "Plan Width": "?",
                     "Index Cond": "( ( id >= ? ) AND ( id <= ? ) )"
                   }
                 ]
@@ -336,21 +308,13 @@
       "Plan": {
         "Node Type": "Limit",
         "Parallel Aware": false,
-        "Startup Cost": "?",
-        "Total Cost": "?",
-        "Plan Rows": "?",
-        "Plan Width": "?",
         "Plans": [
           {
             "Node Type": "Seq Scan",
             "Parent Relationship": "Outer",
             "Parallel Aware": false,
             "Relation Name": "sbtest1",
-            "Alias": "sbtest1",
-            "Startup Cost": "?",
-            "Total Cost": "?",
-            "Plan Rows": "?",
-            "Plan Width": "?"
+            "Alias": "sbtest1"
           }
         ]
       }

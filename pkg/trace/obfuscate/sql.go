@@ -7,6 +7,7 @@ package obfuscate
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -348,37 +349,86 @@ func (o *Obfuscator) obfuscateSQL(span *pb.Span) {
 type mapEntryTransform func(key string, value interface{}) (string, interface{})
 
 // transformMapEntriesRecursive returns a copy of the map object, recursively transforming any keys matching keyPattern
-func transformMapEntriesRecursive(obj interface{}, keyPattern *regexp.Regexp, transform mapEntryTransform) interface{} {
+func transformMapEntriesRecursive(obj interface{}, matchKeys map[string]bool, transformMatching bool, transform mapEntryTransform) interface{} {
 	if mapObj, ok := obj.(map[string]interface{}); ok {
 		result := make(map[string]interface{})
 		for key, val := range mapObj {
-			if keyPattern.MatchString(key) {
+			_, matching := matchKeys[key]
+			if matching && transformMatching || !matching && !transformMatching {
 				key, val = transform(key, val)
 				// transform can decide to drop a key by returning empty string for key
 				if key != "" {
 					result[key] = val
 				}
 			} else {
-				result[key] = transformMapEntriesRecursive(val, keyPattern, transform)
+				result[key] = transformMapEntriesRecursive(val, matchKeys, transformMatching, transform)
 			}
 		}
 		return result
 	} else if listObj, ok := obj.([]interface{}); ok {
 		result := make([]interface{}, len(listObj), len(listObj))
 		for i, val := range listObj {
-			result[i] = transformMapEntriesRecursive(val, keyPattern, transform)
+			result[i] = transformMapEntriesRecursive(val, matchKeys, transformMatching, transform)
 		}
 		return result
 	}
 	return obj
 }
 
-var planObfuscationPattern = regexp.MustCompile(`attached_condition|(\w+ Cond)`)
+// planConditionKeys are keys that are known to contain query conditions (i.e. (where id = 5))
+// see postgres source: https://doxygen.postgresql.org/explain_8c_source.html
+var planConditionKeys = map[string]bool{
+	// mysql
+	"attached_condition": true,
+	// postgres
+	"Index Cond":   true,
+	"Recheck Cond": true,
+	"Merge Cond":   true,
+	"Hash Cond":    true,
+	"Join Filter":  true,
+}
 
-// ObfuscateSQLPlan obfuscates all query conditions (i.e. (where id=5) -> (where id=?)) in the provided json execution
-// plan.
-func (o *Obfuscator) ObfuscateSQLPlan(plan map[string]interface{}) map[string]interface{} {
-	result := transformMapEntriesRecursive(plan, planObfuscationPattern, func(key string, value interface{}) (string, interface{}) {
+// planStructureKeys are keys that contain core plan information that represents a unique query plan. It excludes things
+// that are not unique to the plan structure like cost or row estimates. planConditionKeys are included.
+var planStructureKeys = map[string]bool{
+	// mysql
+	"query_block":        true,
+	"select_id":          true,
+	"ordering_operation": true,
+	"using_filesort":     true,
+	"table":              true,
+	"table_name":         true,
+	"access_type":        true,
+	"possible_keys":      true,
+	"key":                true,
+	"key_length":         true,
+	"used_key_parts":     true,
+	"used_columns":       true,
+	"ref":                true,
+	"update":             true,
+	"attached_condition": true,
+	// postgres
+	"Plan":                true,
+	"Node Type":           true,
+	"Parallel Aware":      true,
+	"Scan Direction":      true,
+	"Index Name":          true,
+	"Relation Name":       true,
+	"Alias":               true,
+	"Parent Relationship": true,
+	"Plans":               true,
+	"Sort Key":            true,
+	"Index Cond":          true,
+	"Recheck Cond":        true,
+	"Merge Cond":          true,
+	"Hash Cond":           true,
+	"Join Filter":         true,
+}
+
+// ObfuscateSQLExecutionPlan obfuscates all query conditions (i.e. (where id=5) -> (where id=?)) in the provided json
+// execution plan
+func (o *Obfuscator) ObfuscateSQLExecutionPlan(plan map[string]interface{}) map[string]interface{} {
+	result := transformMapEntriesRecursive(plan, planConditionKeys, true, func(key string, value interface{}) (string, interface{}) {
 		strValue, ok := value.(string)
 		if !ok {
 			log.Errorf("wrong type found for key '%s'. Expected string, Found: %v", key, reflect.TypeOf(value))
@@ -401,11 +451,11 @@ func (o *Obfuscator) ObfuscateSQLPlan(plan map[string]interface{}) map[string]in
 
 var planNormalizationPattern = regexp.MustCompile(`(\w+_cost)|rows_examined_per_scan|rows_produced_per_join|data_read_per_join|filtered|(\w Cost)|Plan Rows|Plan Width`)
 
-// NormalizeSQLPlan normalizes away all cost & estimation related values in the query plan. Note that this does not
-// obfuscate query conditions. That is done in ObfuscateSQLPlan.
-func (o *Obfuscator) NormalizeSQLPlan(plan map[string]interface{}) map[string]interface{} {
-	result := transformMapEntriesRecursive(plan, planNormalizationPattern, func(key string, value interface{}) (string, interface{}) {
-		return key, "?"
+// NormalizeSQLExecutionPlan normalizes away all cost & estimation related values in the query plan. Make sure to call
+// ObfuscateSQLExecutionPlan after this to obfuscate query conditions as they are not obfuscated here
+func (o *Obfuscator) NormalizeSQLExecutionPlan(plan map[string]interface{}) map[string]interface{} {
+	result := transformMapEntriesRecursive(plan, planStructureKeys, false, func(key string, value interface{}) (string, interface{}) {
+		return "", ""
 	})
 	resultMap, ok := result.(map[string]interface{})
 	if !ok {
@@ -413,4 +463,19 @@ func (o *Obfuscator) NormalizeSQLPlan(plan map[string]interface{}) map[string]in
 		return nil
 	}
 	return resultMap
+}
+
+// ObfuscateSQLJsonExecutionPlan TODO
+func (o *Obfuscator) ObfuscateSQLJsonExecutionPlan(rawJsonPlan string) (string, error) {
+	var plan map[string]interface{}
+	err := json.Unmarshal([]byte(rawJsonPlan), &plan)
+	if err != nil {
+		return "", err
+	}
+	plan = o.ObfuscateSQLExecutionPlan(plan)
+	rawString, err := json.Marshal(plan)
+	if err != nil {
+		return "", err
+	}
+	return string(rawString), nil
 }
