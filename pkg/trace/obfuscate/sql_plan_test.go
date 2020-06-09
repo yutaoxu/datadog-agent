@@ -16,8 +16,8 @@ import (
 )
 
 type execPlanTestCase struct {
-	// Rdbms is mysql or postgres
-	Rdbms          string                 `json:"rdbms"`
+	// Dbms is mysql or postgres
+	Dbms           string                 `json:"rdbms"`
 	TestPlan       map[string]interface{} `json:"test_plan"`
 	ObfuscatedPlan map[string]interface{} `json:"obfuscated_plan"`
 	NormalizedPlan map[string]interface{} `json:"normalized_plan"`
@@ -77,11 +77,11 @@ func TestPlanObfuscationAndNormalization(t *testing.T) {
 	assert.NotEmpty(t, testCases)
 	obfuscator := NewObfuscator(nil)
 	for i, testCase := range testCases {
-		t.Run(fmt.Sprintf("test_obfuscate_%d_%s", i, testCase.Rdbms), func(t *testing.T) {
+		t.Run(fmt.Sprintf("test_obfuscate_%d_%s", i, testCase.Dbms), func(t *testing.T) {
 			result := obfuscator.ObfuscateSQLExecutionPlan(testCase.TestPlan)
 			assert.Equal(t, testCase.ObfuscatedPlan, result)
 		})
-		t.Run(fmt.Sprintf("test_normalize_%d_%s", i, testCase.Rdbms), func(t *testing.T) {
+		t.Run(fmt.Sprintf("test_normalize_%d_%s", i, testCase.Dbms), func(t *testing.T) {
 			obfuscated := obfuscator.ObfuscateSQLExecutionPlan(testCase.TestPlan)
 			normalized := obfuscator.NormalizeSQLExecutionPlan(obfuscated)
 			assert.Equal(t, testCase.NormalizedPlan, normalized)
