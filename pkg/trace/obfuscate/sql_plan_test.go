@@ -88,3 +88,32 @@ func TestPlanObfuscationAndNormalization(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkPlanObfuscationAndNormalization(b *testing.B) {
+	testCases, err := loadAllTestCases()
+	if err != nil {
+		assert.FailNowf(b, "failed to load test cases", err.Error())
+	}
+	assert.NotEmpty(b, testCases)
+	obfuscator := NewObfuscator(nil)
+
+	b.Run(fmt.Sprintf("bench_obfuscate_only"), func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			testCase := testCases[i%len(testCases)]
+			obfuscator.ObfuscateSQLExecutionPlan(testCase.TestPlan)
+		}
+	})
+	b.Run(fmt.Sprintf("bench_normalize_only"), func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			testCase := testCases[i%len(testCases)]
+			obfuscator.NormalizeSQLExecutionPlan(testCase.TestPlan)
+		}
+	})
+	b.Run(fmt.Sprintf("bench_normalize_and_obfuscate"), func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			testCase := testCases[i%len(testCases)]
+			obfuscated := obfuscator.ObfuscateSQLExecutionPlan(testCase.TestPlan)
+			obfuscator.NormalizeSQLExecutionPlan(obfuscated)
+		}
+	})
+}
